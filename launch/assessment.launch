@@ -1,0 +1,28 @@
+<launch> 
+  <arg name="battery" default="0" />
+  <arg name="draw_vacuum" default="0" />
+  <param name="use_sim_time" type="bool" value="True"/>
+  <rosparam command="load" file="$(find assessment)/world/config.yaml"/>
+  <node name="stage" pkg="stage_ros" type="stageros" args="$(find assessment)/world/world.world"/>
+  <node name="mapserver" pkg="map_server" type="map_server" args="$(find assessment)/world/map.yaml"/>
+  <node name="map2odom" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 /map /odom 100"/>
+
+  <group>
+    <remap from="/cmd_vel" to="/cmd_vel_in" if="$(arg battery)"/> 
+    <!-- PUT YOUR NODE HERE -->
+    <node name="robotmarkers" pkg="assessment" type="robot_markers.py"/>
+    <node name="instructionmarkers" pkg="assessment" type="instruction_markers.py"/>
+    <node name="realpath" pkg="assessment" type="real_path.py"/>
+    <node name="odompath" pkg="assessment" type="odom_path.py"/>
+    <node name="pathplanning" pkg="assessment" type="pathplanning.py" output="screen"/>
+    <node name="driving" pkg="assessment" type="control.py" output="screen"/>
+    <!-- <node name="detector" pkg="assessment" type="obstacle_detector.py" output="screen"/> -->
+    <!--THE TELEOP NODE BELOW ALLOWS YOU TO DRIVE AROUND WITH THE KEYBOARD FOR TESTING, UNCOMMENT AS DESIRED. -->
+    <node name="tele" pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py"/>
+  </group>
+
+  <node name="battery" pkg="assessment" type="power_simulator.py" if="$(arg battery)" output="screen">
+    <remap from="/cmd_vel_out" to="/cmd_vel"/>
+  </node>
+  <node name="vacuum_drawer" pkg="assessment" type="vacuum_drawer.py" args="$(find assessment)/world/map.yaml" if="$(arg draw_vacuum)"/>
+</launch>
